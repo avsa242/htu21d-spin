@@ -68,6 +68,15 @@ PUB Defaults{}
 '   Heater off
     reset{}
 
+PUB BattLow{}: flag
+' Flag indicating battery/supply voltage low
+'   Returns:
+'       TRUE (-1): VDD < 2.25V (+/- 0.1V)
+'       FALSE (0): VDD > 2.25V (+/- 0.1V)
+    flag := 0
+    readreg(core#RD_USR_REG, 1, @flag)
+    return ((flag >> core#BATT) & 1) == 1
+
 PUB CRCCheckEnabled(mode): curr_mode
 ' Enable CRC check of sensor data
 '   Valid values:

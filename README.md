@@ -12,6 +12,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the HTU21D 
 * Enable optional CRC checking of data - read flags indicating last acquired data was valid
 * Set sensor resolution
 * Enable on-chip heater (intended for diagnosis only - 0.5-1.5C temperature increase)
+* Read low-battery status
 
 ## Requirements
 
@@ -32,11 +33,13 @@ P1/SPIN1:
 ## Limitations
 
 * Very early in development - may malfunction, or outright fail to build
+* Low battery status flag unverified
 
 ## TODO
 
 - [x] add support for optional CRC checking
 - [x] add support for changing sensor resolution
-- [ ] add support for reading battery status
+- [x] add support for reading battery status
 - [x] add support for on-chip heater
 - [ ] port to P2/SPIN2
+
