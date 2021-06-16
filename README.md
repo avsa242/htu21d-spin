@@ -8,6 +8,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the HTU21D 
 ## Salient Features
 
 * I2C connection at up to 400kHz
+* Read temperature (hundredths of a degree), humidity (hundredths of a percent)
 
 ## Requirements
 
@@ -19,8 +20,8 @@ P1/SPIN1:
 
 ## Compiler Compatibility
 
-* P1/SPIN1: OpenSpin (tested with 1.00.81)
-* ~~P2/SPIN2: FlexSpin (tested with 5.1.0-beta)~~ _(not yet implemented)_
+* P1/SPIN1: OpenSpin (tested with 1.00.81), FlexSpin (tested with 5.5.0)
+* ~~P2/SPIN2: FlexSpin (tested with 5.5.0)~~ _(not yet implemented)_
 * ~~BST~~ (incompatible - no preprocessor)
 * ~~Propeller Tool~~ (incompatible - no preprocessor)
 * ~~PNut~~ (incompatible - no preprocessor)
@@ -31,4 +32,8 @@ P1/SPIN1:
 
 ## TODO
 
-- [ ] TBD
+- [ ] add support for optional CRC checking
+- [ ] add support for changing sensor resolution
+- [ ] add support for reading battery status
+- [ ] add support for on-chip heater
+- [ ] port to P2/SPIN2
