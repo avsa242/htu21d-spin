@@ -25,7 +25,9 @@ CON
 
 VAR
 
+    long _lastrhvalid, _lasttempvalid
     byte _temp_scale
+    byte _crccheck
 
 OBJ
 
@@ -34,6 +36,7 @@ OBJ
 '    i2c : "tiny.com.i2c"                        ' SPIN I2C engine (~40kHz)
     core: "core.con.htu21d"       ' hw-specific low-level const's
     time: "time"                                ' basic timing functions
+    crc : "math.crc"
 
 PUB Null{}
 ' This is not a top-level object
@@ -62,17 +65,44 @@ PUB Stop{}
 PUB Defaults{}
 ' Set factory defaults
 
-PUB HumData{}: rh_adc
+PUB CRCCheckEnabled(mode): curr_mode
+' Enable CRC check of sensor data
+'   Valid values:
+'      *TRUE (-1 or 1)
+'       FALSE (0)
+'   Any other value returns the current setting
+    case ||(mode)
+        0, 1:
+            _crccheck := mode
+        other:
+            return _crccheck
+
+PUB HumData{}: rh_adc | crc_in
 ' Read relative humidity data
-'   Returns: u16
+'   Returns: u12
     rh_adc := 0
-    readreg(core#RHMEAS_CS, 2, @rh_adc)
+
+    if _crccheck
+        readreg(core#RHMEAS_CS, 3, @rh_adc)
+        crc_in := rh_adc.byte[0]
+        rh_adc >>= 8
+        _lastrhvalid := (crc.meascrc8(@rh_adc, 2) == crc_in)
+    else
+        readreg(core#RHMEAS_CS, 2, @rh_adc)
 
 PUB Humidity{}: rh
 ' Current Relative Humidity, in hundredths of a percent
 '   Returns: Integer
 '   (e.g., 4762 is equivalent to 47.62%)
-    rh := calcrh(humdata{})
+    rh := 0 #> calcrh(humdata{}) <# 100_00      ' clamp data to sensible range
+
+PUB LastRHValid{}: isvalid
+' Flag indicating CRC check of last RH measurement was good
+    return _lastrhvalid
+
+PUB LastTempValid{}: isvalid
+' Flag indicating CRC check of last temperature measurement was good
+    return _lasttempvalid
 
 PUB Reset{}
 ' Reset the device
@@ -80,12 +110,22 @@ PUB Reset{}
     writereg(core#SOFTRESET, 0, 0)
     time.msleep(core#T_POR)
 
-PUB TempData{}: temp_adc | tmp
+PUB TempData{}: temp_adc | crc_in
 ' Read temperature data
-'   Returns: s16
+'   Returns: s14
     temp_adc := 0
-    readreg(core#TEMPMEAS_CS, 2, @temp_adc)
-    temp_adc &= $fffc
+
+    if _crccheck                                ' CRC checks enabled?
+        readreg(core#TEMPMEAS_CS, 3, @temp_adc)
+        crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
+        temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
+        _lasttempvalid := (crc.meascrc8(@temp_adc, 2) == crc_in)
+        return ~~temp_adc
+    else
+        ' no CRC checks; just read the sensor data
+        readreg(core#TEMPMEAS_CS, 2, @temp_adc)
+        temp_adc &= $fffc                       ' mask off status bits (unused)
+        return ~~temp_adc
 
 PUB Temperature{}: deg
 ' Current Temperature, in hundredths of a degree

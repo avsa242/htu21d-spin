@@ -32,7 +32,7 @@ P1/SPIN1:
 
 ## TODO
 
-- [ ] add support for optional CRC checking
+- [x] add support for optional CRC checking
 - [ ] add support for changing sensor resolution
 - [ ] add support for reading battery status
 - [ ] add support for on-chip heater

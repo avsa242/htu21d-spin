@@ -41,15 +41,22 @@ PUB Main{}
     setup{}
 
     sens.tempscale(C)                           ' C (0) or F (1)
+    sens.crccheckenabled(true)                  ' TRUE, FALSE
 
     repeat
         ser.position(0, 3)
         ser.str(string("Temperature: "))
         int2dp(sens.temperature{}, 100)
+        ser.str(string("  (CRC valid: "))
+        ser.str(lookupz(||(sens.lasttempvalid{}): string("No "), string("Yes")))
+        ser.char(")")
 
         ser.newline{}
         ser.str(string("Humidity: "))
         int2dp(sens.humidity{}, 100)
+        ser.str(string("  (CRC valid: "))
+        ser.str(lookupz(||(sens.lastrhvalid{}): string("No "), string("Yes")))
+        ser.char(")")
 
 PRI Int2DP(scaled, divisor) | whole[4], part[4], places, tmp, sign
 ' Display a scaled up number as a decimal
