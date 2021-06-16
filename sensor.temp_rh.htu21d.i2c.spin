@@ -66,7 +66,7 @@ PUB HumData{}: rh_adc
 ' Read relative humidity data
 '   Returns: u16
     rh_adc := 0
-    readreg(core#RHMEAS_CS, 3, @rh_adc)
+    readreg(core#RHMEAS_CS, 2, @rh_adc)
 
 PUB Humidity{}: rh
 ' Current Relative Humidity, in hundredths of a percent
@@ -84,7 +84,8 @@ PUB TempData{}: temp_adc | tmp
 ' Read temperature data
 '   Returns: s16
     temp_adc := 0
-    readreg(core#TEMPMEAS_CS, 3, @temp_adc)
+    readreg(core#TEMPMEAS_CS, 2, @temp_adc)
+    temp_adc &= $fffc
 
 PUB Temperature{}: deg
 ' Current Temperature, in hundredths of a degree
@@ -105,16 +106,17 @@ PUB TempScale(scale): curr_scale
             return _temp_scale
 
 PRI calcRH(rh_word): rh_cal
-
-    return (rh_word * 100_00) / 65535
+' RH = -6 + 125 * S_RH / 2^16
+    return ((rh_word * 125_00) / 65536) - 6_00
 
 PRI calcTemp(temp_word): temp_cal
-
+' Temp = -46.85+175.72 * S_TEMP / 2^16
+    temp_cal := ((temp_word * 175_72) / 65536) - 46_85
     case _temp_scale
         C:
-            return ((175 * (temp_word * 100)) / 65535)-45_00
+            return
         F:
-            return ((315 * (temp_word * 100)) / 65535)-49_00
+            return (temp_cal * 9_00 / 5_00) + 32_00
         other:
             return FALSE
 

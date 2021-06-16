@@ -38,8 +38,11 @@ PUB Main{}
         ser.position(0, 3)
         ser.hex(sens.tempdata, 8)
         ser.newline
+        ser.dec(sens.temperature)
+        ser.newline
         ser.hex(sens.humdata, 8)
-
+        ser.newline
+        ser.dec(sens.humidity)
 PUB Setup{}
 
     ser.start(SER_BAUD)
