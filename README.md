@@ -11,6 +11,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the HTU21D 
 * Read temperature (hundredths of a degree), humidity (hundredths of a percent)
 * Enable optional CRC checking of data - read flags indicating last acquired data was valid
 * Set sensor resolution
+* Enable on-chip heater (intended for diagnosis only - 0.5-1.5C temperature increase)
 
 ## Requirements
 
@@ -37,5 +38,5 @@ P1/SPIN1:
 - [x] add support for optional CRC checking
 - [x] add support for changing sensor resolution
 - [ ] add support for reading battery status
-- [ ] add support for on-chip heater
+- [x] add support for on-chip heater
 - [ ] port to P2/SPIN2

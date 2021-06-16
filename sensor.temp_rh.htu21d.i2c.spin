@@ -80,6 +80,23 @@ PUB CRCCheckEnabled(mode): curr_mode
         other:
             return _crccheck
 
+PUB HeaterEnabled(state): curr_state
+' Enable/Disable built-in heater
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+'   NOTE: Per HTU21D datasheet, this is for functionality diagnosis only
+'   NOTE: Enabling should increase temperature reading by approx 0.5-1.5C
+    curr_state := 0
+    readreg(core#RD_USR_REG, 1, @curr_state)
+    case ||(state)
+        0, 1:
+            state <<= core#HEATER
+        other:
+            return (((curr_state >> core#HEATER) & 1) == 1)
+
+    state := ((curr_state & core#HEATER_MASK) | state)
+    writereg(core#WR_USR_REG, 1, @state)
+
 PUB HumData{}: rh_adc | crc_in
 ' Read relative humidity data
 '   Returns: u12
