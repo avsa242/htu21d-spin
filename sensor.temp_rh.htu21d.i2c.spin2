@@ -1,8 +1,8 @@
 {
     --------------------------------------------
-    Filename: sensor.temp_rh.htu21d.i2c.spin
+    Filename: sensor.temp_rh.htu21d.i2c.spin2
     Author: Jesse Burt
-    Description: Driver for the HTU21D Temp/RH sensor
+    Description: Driver for the HTU21D Temp/RH sensor (P2 version)
     Copyright (c) 2021
     Started Jun 16, 2021
     Updated Jun 16, 2021
@@ -12,13 +12,13 @@
 
 CON
 
-    SLAVE_WR        = core#SLAVE_ADDR
-    SLAVE_RD        = core#SLAVE_ADDR|1
+    SLAVE_WR        = core.SLAVE_ADDR
+    SLAVE_RD        = core.SLAVE_ADDR|1
 
     DEF_SCL         = 28
     DEF_SDA         = 29
     DEF_HZ          = 100_000
-    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
+    I2C_MAX_FREQ    = core.I2C_MAX_FREQ
 
     C               = 0
     F               = 1
@@ -34,22 +34,21 @@ OBJ
 ' choose an I2C engine below
     i2c : "com.i2c"                             ' PASM I2C engine (up to ~800kHz)
     core: "core.con.htu21d"                     ' hw-specific low-level const's
-    time: "time"                                ' basic timing functions
     crc : "math.crc"
 
-PUB Null{}
+PUB Null()
 ' This is not a top-level object
 
-PUB Start{}: status
+PUB Start(): status
 ' Start using "standard" Propeller I2C pins and 100kHz
     return startx(DEF_SCL, DEF_SDA, DEF_HZ)
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
-}   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
+    if lookdown(SCL_PIN: 0..63) and lookdown(SDA_PIN: 0..63) and {
+}   I2C_HZ <= core.I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-            time.usleep(core#T_POR)             ' wait for device startup
+            waitus(core.T_POR)             ' wait for device startup
             if i2c.present(SLAVE_WR)            ' test device bus presence
                 return
     ' if this point is reached, something above failed
@@ -57,24 +56,24 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
     ' Lastly - make sure you have at least one free core/cog 
     return FALSE
 
-PUB Stop{}
+PUB Stop()
 
-    i2c.deinit{}
+    i2c.deinit()
 
-PUB Defaults{}
+PUB Defaults()
 ' Set factory defaults
 '   ADC res: RH 12bits / Temp 14bits
 '   Heater off
-    reset{}
+    reset()
 
-PUB BattLow{}: flag
+PUB BattLow(): flag
 ' Flag indicating battery/supply voltage low
 '   Returns:
 '       TRUE (-1): VDD < 2.25V (+/- 0.1V)
 '       FALSE (0): VDD > 2.25V (+/- 0.1V)
     flag := 0
-    readreg(core#RD_USR_REG, 1, @flag)
-    return ((flag >> core#BATT) & 1) == 1
+    readreg(core.RD_USR_REG, 1, @flag)
+    return ((flag >> core.BATT) & 1) == 1
 
 PUB CRCCheckEnabled(mode): curr_mode
 ' Enable CRC check of sensor data
@@ -82,7 +81,7 @@ PUB CRCCheckEnabled(mode): curr_mode
 '      *TRUE (-1 or 1)
 '       FALSE (0)
 '   Any other value returns the current setting
-    case ||(mode)
+    case abs(mode)
         0, 1:
             _crccheck := mode
         other:
@@ -95,48 +94,48 @@ PUB HeaterEnabled(state): curr_state
 '   NOTE: Per HTU21D datasheet, this is for functionality diagnosis only
 '   NOTE: Enabling should increase temperature reading by approx 0.5-1.5C
     curr_state := 0
-    readreg(core#RD_USR_REG, 1, @curr_state)
-    case ||(state)
+    readreg(core.RD_USR_REG, 1, @curr_state)
+    case abs(state)
         0, 1:
-            state <<= core#HEATER
+            state <<= core.HEATER
         other:
-            return (((curr_state >> core#HEATER) & 1) == 1)
+            return (((curr_state >> core.HEATER) & 1) == 1)
 
-    state := ((curr_state & core#HEATER_MASK) | state)
-    writereg(core#WR_USR_REG, 1, @state)
+    state := ((curr_state & core.HEATER_MASK) | state)
+    writereg(core.WR_USR_REG, 1, @state)
 
-PUB HumData{}: rh_adc | crc_in
+PUB HumData(): rh_adc | crc_in
 ' Read relative humidity data
 '   Returns: u12
     rh_adc := 0
 
     if _crccheck
-        readreg(core#RHMEAS_CS, 3, @rh_adc)
+        readreg(core.RHMEAS_CS, 3, @rh_adc)
         crc_in := rh_adc.byte[0]
         rh_adc >>= 8
         _lastrhvalid := (crc.meascrc8(@rh_adc, 2) == crc_in)
     else
-        readreg(core#RHMEAS_CS, 2, @rh_adc)
+        readreg(core.RHMEAS_CS, 2, @rh_adc)
 
-PUB Humidity{}: rh
+PUB Humidity(): rh
 ' Current Relative Humidity, in hundredths of a percent
 '   Returns: Integer
 '   (e.g., 4762 is equivalent to 47.62%)
-    rh := 0 #> calcrh(humdata{}) <# 100_00      ' clamp data to sensible range
+    rh := 0 #> calcrh(humdata()) <# 100_00      ' clamp data to sensible range
 
-PUB LastRHValid{}: isvalid
+PUB LastRHValid(): isvalid
 ' Flag indicating CRC check of last RH measurement was good
     return _lastrhvalid
 
-PUB LastTempValid{}: isvalid
+PUB LastTempValid(): isvalid
 ' Flag indicating CRC check of last temperature measurement was good
     return _lasttempvalid
 
-PUB Reset{}
+PUB Reset()
 ' Reset the device
 '   NOTE: Soft-reset waits a 15ms delay
-    writereg(core#SOFTRESET, 0, 0)
-    time.msleep(core#T_POR)
+    writereg(core.SOFTRESET, 0, 0)
+    waitms(core.T_POR)
 
 PUB RHADCRes(r_res): curr_res | adc_bits
 ' Set RH ADC resolution, in bits
@@ -149,7 +148,7 @@ PUB RHADCRes(r_res): curr_res | adc_bits
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the temperature ADC resolution
     curr_res := 0
-    readreg(core#RD_USR_REG, 1, @curr_res)
+    readreg(core.RD_USR_REG, 1, @curr_res)
     case r_res
         8, 10, 11, 12:
             ' map resolution to reg bits
@@ -160,8 +159,8 @@ PUB RHADCRes(r_res): curr_res | adc_bits
             adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
             return lookupz(adc_bits: 12, 8, 10, 11)
 
-    r_res := ((curr_res & core#ADCRES_MASK) | adc_bits)
-    writereg(core#WR_USR_REG, 1, @r_res)
+    r_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
+    writereg(core.WR_USR_REG, 1, @r_res)
 
 PUB TempADCRes(t_res): curr_res | adc_bits
 ' Set temperature ADC resolution, in bits
@@ -174,7 +173,7 @@ PUB TempADCRes(t_res): curr_res | adc_bits
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the RH ADC resolution
     curr_res := 0
-    readreg(core#RD_USR_REG, 1, @curr_res)
+    readreg(core.RD_USR_REG, 1, @curr_res)
     case t_res
         11..14:
             ' map resolution to reg bits
@@ -185,32 +184,32 @@ PUB TempADCRes(t_res): curr_res | adc_bits
             adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
             return lookupz(adc_bits: 14, 12, 13, 11)
 
-    t_res := ((curr_res & core#ADCRES_MASK) | adc_bits)
+    t_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
     curr_res := t_res
-    writereg(core#WR_USR_REG, 1, @t_res)
+    writereg(core.WR_USR_REG, 1, @t_res)
 
-PUB TempData{}: temp_adc | crc_in
+PUB TempData(): temp_adc | crc_in
 ' Read temperature data
 '   Returns: s14
     temp_adc := 0
 
     if _crccheck                                ' CRC checks enabled?
-        readreg(core#TEMPMEAS_CS, 3, @temp_adc)
+        readreg(core.TEMPMEAS_CS, 3, @temp_adc)
         crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
         temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
         _lasttempvalid := (crc.meascrc8(@temp_adc, 2) == crc_in)
         return ~~temp_adc
     else
         ' no CRC checks; just read the sensor data
-        readreg(core#TEMPMEAS_CS, 2, @temp_adc)
+        readreg(core.TEMPMEAS_CS, 2, @temp_adc)
         temp_adc &= $fffc                       ' mask off status bits (unused)
         return ~~temp_adc
 
-PUB Temperature{}: deg
+PUB Temperature(): deg
 ' Current Temperature, in hundredths of a degree
 '   Returns: Integer
 '   (e.g., 2105 is equivalent to 21.05 deg C)
-    return calctemp(tempdata{})
+    return calctemp(tempdata())
 
 PUB TempScale(scale): curr_scale
 ' Set temperature scale used by Temperature method
@@ -245,14 +244,14 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         $E3, $E5, $F3, $F5, $E7:
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr
-            i2c.start{}
+            i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
-            i2c.start{}
+            i2c.start()
             i2c.wr_byte(SLAVE_RD)
 
     ' write MSByte to LSByte
-            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c#NAK)
-            i2c.stop{}
+            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.stop()
     '
         other:                                  ' invalid reg_nr
             return
@@ -263,12 +262,12 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
         $E6, $FE:
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr
-            i2c.start{}
+            i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)
 
     ' write MSByte to LSByte
             i2c.wrblock_msbf(ptr_buff, nr_bytes)
-            i2c.stop{}
+            i2c.stop()
     '
         other:
             return
