@@ -76,6 +76,9 @@ PUB Humidity{}: rh
 
 PUB Reset{}
 ' Reset the device
+'   NOTE: Soft-reset waits a 15ms delay
+    writereg(core#SOFTRESET, 0, 0)
+    time.msleep(core#T_POR)
 
 PUB TempData{}: temp_adc | tmp
 ' Read temperature data
