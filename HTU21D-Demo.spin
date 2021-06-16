@@ -21,28 +21,61 @@ CON
 
     SCL_PIN     = 28
     SDA_PIN     = 29
-    I2C_HZ      = 400_000
+    I2C_HZ      = 400_000                       ' max is 400_000
 ' --
+
+' Temperature scales
+    C           = 0
+    F           = 1
 
 OBJ
 
-    cfg   : "core.con.boardcfg.flip"
-    ser   : "com.serial.terminal.ansi"
-    time  : "time"
+    cfg     : "core.con.boardcfg.flip"
+    ser     : "com.serial.terminal.ansi"
+    time    : "time"
+    int     : "string.integer"
     sens    : "sensor.temp_rh.htu21d.i2c"
 
 PUB Main{}
 
     setup{}
+
+    sens.tempscale(C)                           ' C (0) or F (1)
+
     repeat
         ser.position(0, 3)
-        ser.hex(sens.tempdata, 8)
-        ser.newline
-        ser.dec(sens.temperature)
-        ser.newline
-        ser.hex(sens.humdata, 8)
-        ser.newline
-        ser.dec(sens.humidity)
+        ser.str(string("Temperature: "))
+        int2dp(sens.temperature{}, 100)
+
+        ser.newline{}
+        ser.str(string("Humidity: "))
+        int2dp(sens.humidity{}, 100)
+
+PRI Int2DP(scaled, divisor) | whole[4], part[4], places, tmp, sign
+' Display a scaled up number as a decimal
+'   Scale it back down by divisor (e.g., 10, 100, 1000, etc)
+    whole := scaled / divisor
+    tmp := divisor
+    places := 0
+    part := 0
+    sign := 0
+    if scaled < 0
+        sign := "-"
+    else
+        sign := " "
+
+    repeat
+        tmp /= 10
+        places++
+    until tmp == 1
+    scaled //= divisor
+    part := int.deczeroed(||(scaled), places)
+
+    ser.char(sign)
+    ser.dec(||(whole))
+    ser.char(".")
+    ser.str(part)
+
 PUB Setup{}
 
     ser.start(SER_BAUD)
