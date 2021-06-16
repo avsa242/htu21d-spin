@@ -1,8 +1,8 @@
 {
     --------------------------------------------
     Filename: sensor.temp_rh.htu21d.i2c.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Driver for the HTU21D Temp/RH sensor
     Copyright (c) 2021
     Started Jun 16, 2021
     Updated Jun 16, 2021

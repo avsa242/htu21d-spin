@@ -1,8 +1,8 @@
 {
     --------------------------------------------
     Filename: HTU21D-Demo.spin
-    Author:
-    Description:
+    Author: Jesse Burt
+    Description: Demo of the HTU21D driver
     Copyright (c) 2021
     Started Jun 16, 2021
     Updated Jun 16, 2021
