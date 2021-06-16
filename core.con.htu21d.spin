@@ -25,6 +25,17 @@ CON
     RHMEAS          = $F5
     WR_USR_REG      = $E6
     RD_USR_REG      = $E7
+    USR_REG_MASK    = $C7
+        ADCRES_MSB  = 7
+        ADCRES_LSB  = 0
+        BATT        = 6
+        HEATER      = 2
+        DIS_OTP_REL = 1
+        ADCRES_MASK = ((1 << ADCRES_MSB) | (1 << ADCRES_LSB)) ^ USR_REG_MASK
+        BATT_MASK   = (1 << BATT) ^ USR_REG_MASK
+        HEATER_MASK = (1 << HEATER) ^ USR_REG_MASK
+        DIS_OTP_MASK= (1 << DIS_OTP_REL) ^ USR_REG_MASK
+
     SOFTRESET       = $FE
 
 PUB Null{}

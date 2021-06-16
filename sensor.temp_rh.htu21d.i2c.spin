@@ -64,6 +64,9 @@ PUB Stop{}
 
 PUB Defaults{}
 ' Set factory defaults
+'   ADC res: RH 12bits / Temp 14bits
+'   Heater off
+    reset{}
 
 PUB CRCCheckEnabled(mode): curr_mode
 ' Enable CRC check of sensor data
@@ -109,6 +112,57 @@ PUB Reset{}
 '   NOTE: Soft-reset waits a 15ms delay
     writereg(core#SOFTRESET, 0, 0)
     time.msleep(core#T_POR)
+
+PUB RHADCRes(r_res): curr_res | adc_bits
+' Set RH ADC resolution, in bits
+'   Valid values: 8, 10, 11, 12
+'       Temp ADC res:   RH ADC res:
+'      *14              12
+'       12              8
+'       13              10
+'       11              11
+'   Any other value polls the chip and returns the current setting
+'   NOTE: This setting also directly affects the temperature ADC resolution
+    curr_res := 0
+    readreg(core#RD_USR_REG, 1, @curr_res)
+    case r_res
+        8, 10, 11, 12:
+            ' map resolution to reg bits
+            ' ADC resolution is in bits 7 and 0
+            adc_bits := lookdownz(r_res: 12, 8, 10, 11)
+            adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
+        other:
+            adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
+            return lookupz(adc_bits: 12, 8, 10, 11)
+
+    r_res := ((curr_res & core#ADCRES_MASK) | adc_bits)
+    writereg(core#WR_USR_REG, 1, @r_res)
+
+PUB TempADCRes(t_res): curr_res | adc_bits
+' Set temperature ADC resolution, in bits
+'   Valid values: 11..14
+'       Temp ADC res:   RH ADC res:
+'      *14              12
+'       12              8
+'       13              10
+'       11              11
+'   Any other value polls the chip and returns the current setting
+'   NOTE: This setting also directly affects the RH ADC resolution
+    curr_res := 0
+    readreg(core#RD_USR_REG, 1, @curr_res)
+    case t_res
+        11..14:
+            ' map resolution to reg bits
+            ' ADC resolution is in bits 7 and 0
+            adc_bits := lookdownz(t_res: 14, 12, 13, 11)
+            adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
+        other:
+            adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
+            return lookupz(adc_bits: 14, 12, 13, 11)
+
+    t_res := ((curr_res & core#ADCRES_MASK) | adc_bits)
+    curr_res := t_res
+    writereg(core#WR_USR_REG, 1, @t_res)
 
 PUB TempData{}: temp_adc | crc_in
 ' Read temperature data
