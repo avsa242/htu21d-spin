@@ -5,10 +5,13 @@
     Description: Demo of the HTU21D driver
     Copyright (c) 2021
     Started Jun 16, 2021
-    Updated Jun 16, 2021
+    Updated Aug 15, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
+' Uncomment one of the below to choose the SPIN or PASM I2C engine
+'#define HTU21D_SPIN
+#define HTU21D_PASM
 
 CON
 
@@ -90,8 +93,13 @@ PUB Setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
+#ifdef HTU21D_SPIN
+    if sens.startx(SCL_PIN, SDA_PIN)
+        ser.strln(string("HTU21D driver started (I2C-SPIN)"))
+#elseifdef HTU21D_PASM
     if sens.startx(SCL_PIN, SDA_PIN, I2C_HZ)
-        ser.strln(string("HTU21D driver started"))
+        ser.strln(string("HTU21D driver started (I2C-PASM)"))
+#endif
     else
         ser.strln(string("HTU21D driver failed to start - halting"))
         repeat

@@ -7,7 +7,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the HTU21D 
 
 ## Salient Features
 
-* I2C connection at up to 400kHz
+* I2C connection at up to ~30kHz (P1: SPIN I2C), 400kHz (P1: PASM I2C, P2)
 * Read temperature (hundredths of a degree), humidity (hundredths of a percent)
 * Enable optional CRC checking of data - read flags indicating last acquired data was valid
 * Set sensor resolution
@@ -18,7 +18,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 driver object for the HTU21D 
 
 P1/SPIN1:
 * spin-standard-library
-* 1 extra core/cog for the PASM I2C engine
+* 1 extra core/cog for the PASM I2C engine (none if SPIN I2C engine is used)
 
 P2/SPIN2:
 * p2-spin-standard-library
