@@ -47,24 +47,13 @@ PUB Null{}
 
 PUB Start{}: status
 ' Start using "standard" Propeller I2C pins and 100kHz
-#ifdef HTU21D_SPIN
-    return startx(DEF_SCL, DEF_SDA)
-#elseifdef HTU21D_PASM
     return startx(DEF_SCL, DEF_SDA, DEF_HZ)
-#endif
 
-#ifdef HTU21D_SPIN
-PUB Startx(SCL_PIN, SDA_PIN): status
-' Start using custom IO pins and I2C bus frequency
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
-        if (status := i2c.init(SCL_PIN, SDA_PIN))
-#elseifdef HTU21D_PASM
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): status
 ' Start using custom IO pins and I2C bus frequency
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31) and {
 }   I2C_HZ =< core#I2C_MAX_FREQ                 ' validate pins and bus freq
         if (status := i2c.init(SCL_PIN, SDA_PIN, I2C_HZ))
-#endif
             time.usleep(core#T_POR)             ' wait for device startup
             if i2c.present(SLAVE_WR)            ' test device bus presence
                 return

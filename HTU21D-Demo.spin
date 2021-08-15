@@ -10,8 +10,8 @@
     --------------------------------------------
 }
 ' Uncomment one of the below to choose the SPIN or PASM I2C engine
-'#define HTU21D_SPIN
-#define HTU21D_PASM
+#define HTU21D_SPIN
+'#define HTU21D_PASM
 
 CON
 
@@ -93,11 +93,10 @@ PUB Setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
+    if sens.startx(SCL_PIN, SDA_PIN, I2C_HZ)
 #ifdef HTU21D_SPIN
-    if sens.startx(SCL_PIN, SDA_PIN)
         ser.strln(string("HTU21D driver started (I2C-SPIN)"))
 #elseifdef HTU21D_PASM
-    if sens.startx(SCL_PIN, SDA_PIN, I2C_HZ)
         ser.strln(string("HTU21D driver started (I2C-PASM)"))
 #endif
     else
