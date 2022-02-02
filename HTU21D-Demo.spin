@@ -9,9 +9,6 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-' Uncomment one of the below to choose the SPIN or PASM I2C engine
-#define HTU21D_SPIN
-'#define HTU21D_PASM
 
 CON
 
@@ -37,7 +34,7 @@ OBJ
     ser     : "com.serial.terminal.ansi"
     time    : "time"
     int     : "string.integer"
-    sens    : "sensor.temp_rh.htu21d.i2c"
+    sens    : "sensor.temp_rh.htu21d"
 
 PUB Main{}
 
