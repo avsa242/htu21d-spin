@@ -42,4 +42,6 @@ P2/SPIN2:
 
 * Very early in development - may malfunction, or outright fail to build
 * Low battery status flag unverified
+* P2 demo has incorrect output when built with FlexSpin 5.9.13-beta or older: see FlexSpin [issue #289](https://github.com/totalspectrum/spin2cpp/issues/289). A temporary workaround is implemented in the common demo code.
+
 

@@ -29,9 +29,9 @@ CON
 
 OBJ
 
-    cfg: "core.con.boardcfg.p2eval"
-    sensr: "sensor.temp_rh.htu21d"
-    ser: "com.serial.terminal.ansi"
+    cfg:    "core.con.boardcfg.p2eval"
+    sensr:  "sensor.temp_rh.htu21d"
+    ser:    "com.serial.terminal.ansi"
 
 PUB Setup()
 
