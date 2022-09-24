@@ -33,7 +33,7 @@ OBJ
     sensr:  "sensor.temp_rh.htu21d"
     ser:    "com.serial.terminal.ansi"
 
-PUB Setup()
+PUB setup()
 
     ser.start(SER_BAUD)
     waitms(10)
@@ -46,7 +46,7 @@ PUB Setup()
         ser.strln(@"HTU21D driver failed to start - halting")
         repeat
 
-    sensr.tempscale(sensr.C)
+    sensr.temp_scale(sensr.C)
     demo()
 
 #include "temp_rhdemo.common.spin2h"             ' code common to all temp/RH demos

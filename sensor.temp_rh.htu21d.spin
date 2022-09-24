@@ -5,7 +5,7 @@
     Description: Driver for the HTU21D Temp/RH sensor
     Copyright (c) 2022
     Started Jun 16, 2021
-    Updated Sep 21, 2022
+    Updated Sep 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -41,7 +41,7 @@ OBJ
 PUB null{}
 ' This is not a top-level object
 
-PUB Start{}: status
+PUB start{}: status
 ' Start using "standard" Propeller I2C pins and 100kHz
     return startx(DEF_SCL, DEF_SDA, DEF_HZ)
 
@@ -69,7 +69,7 @@ PUB defaults{}
 '   Heater off
     reset{}
 
-PUB battlow{}: flag
+PUB batt_low{}: flag
 ' Flag indicating battery/supply voltage low
 '   Returns:
 '       TRUE (-1): VDD < 2.25V (+/- 0.1V)
@@ -78,7 +78,7 @@ PUB battlow{}: flag
     readreg(core#RD_USR_REG, 1, @flag)
     return ((flag >> core#BATT) & 1) == 1
 
-PUB crccheckenabled(mode): curr_mode
+PUB crc_check_ena(mode): curr_mode
 ' Enable CRC check of sensor data
 '   Valid values:
 '      *TRUE (-1 or 1)
@@ -90,7 +90,7 @@ PUB crccheckenabled(mode): curr_mode
         other:
             return _crccheck
 
-PUB heaterenabled(state): curr_state
+PUB heater_ena(state): curr_state
 ' Enable/Disable built-in heater
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
@@ -107,11 +107,11 @@ PUB heaterenabled(state): curr_state
     state := ((curr_state & core#HEATER_MASK) | state)
     writereg(core#WR_USR_REG, 1, @state)
 
-PUB lastrhvalid{}: isvalid
+PUB last_rh_valid{}: isvalid
 ' Flag indicating CRC check of last RH measurement was good
     return _lastrhvalid
 
-PUB lasttempvalid{}: isvalid
+PUB last_temp_valid{}: isvalid
 ' Flag indicating CRC check of last temperature measurement was good
     return _lasttempvalid
 
@@ -121,7 +121,7 @@ PUB reset{}
     writereg(core#SOFTRESET, 0, 0)
     time.msleep(core#T_POR)
 
-PUB rhadcres(r_res): curr_res | adc_bits
+PUB rh_adc_res(r_res): curr_res | adc_bits
 ' Set RH ADC resolution, in bits
 '   Valid values: 8, 10, 11, 12
 '       Temp ADC res:   RH ADC res:
@@ -146,12 +146,12 @@ PUB rhadcres(r_res): curr_res | adc_bits
     r_res := ((curr_res & core#ADCRES_MASK) | adc_bits)
     writereg(core#WR_USR_REG, 1, @r_res)
 
-PUB rhdata{}: rh_adc | crc_in
+PUB rh_data{}: rh_adc | crc_in
 ' Read relative humidity data
 '   Returns: u12
     rh_adc := 0
 
-    if _crccheck
+    if (_crccheck)
         readreg(core#RHMEAS_CS, 3, @rh_adc)
         crc_in := rh_adc.byte[0]
         rh_adc >>= 8
@@ -159,12 +159,12 @@ PUB rhdata{}: rh_adc | crc_in
     else
         readreg(core#RHMEAS_CS, 2, @rh_adc)
 
-PUB rhword2pct(rh_word): rh
+PUB rh_word2pct(rh_word): rh
 ' Convert RH ADC word to percent
 '   Returns: relative humidity, in hundredths of a percent
     return ((rh_word * 125_00) / 65536) - 6_00
 
-PUB tempadcres(t_res): curr_res | adc_bits
+PUB temp_adc_res(t_res): curr_res | adc_bits
 ' Set temperature ADC resolution, in bits
 '   Valid values: 11..14
 '       Temp ADC res:   RH ADC res:
@@ -190,12 +190,12 @@ PUB tempadcres(t_res): curr_res | adc_bits
     curr_res := t_res
     writereg(core#WR_USR_REG, 1, @t_res)
 
-PUB tempdata{}: temp_adc | crc_in
+PUB temp_data{}: temp_adc | crc_in
 ' Read temperature data
 '   Returns: s14
     temp_adc := 0
 
-    if _crccheck                                ' CRC checks enabled?
+    if (_crccheck)                              ' CRC checks enabled?
         readreg(core#TEMPMEAS_CS, 3, @temp_adc)
         crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
         temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
@@ -207,7 +207,7 @@ PUB tempdata{}: temp_adc | crc_in
         temp_adc &= $fffc                       ' mask off status bits (unused)
         return ~~temp_adc
 
-PUB tempword2deg(temp_word): temp
+PUB temp_word2deg(temp_word): temp
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
     temp := ((temp_word * 175_72) / 65536) - 46_85

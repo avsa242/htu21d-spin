@@ -6,7 +6,7 @@
         * Temp/RH data output
     Copyright (c) 2022
     Started Jun 16, 2021
-    Updated Jul 16, 2022
+    Updated Sep 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -35,7 +35,7 @@ OBJ
     ser:    "com.serial.terminal.ansi"
     time:   "time"
 
-PUB Setup{}
+PUB setup{}
 
     ser.start(SER_BAUD)
     time.msleep(10)
@@ -48,7 +48,7 @@ PUB Setup{}
         ser.strln(string("HTU21D driver failed to start - halting"))
         repeat
 
-    sensr.tempscale(sensr#C)
+    sensr.temp_scale(sensr#C)
     demo{}
 
 #include "temp_rhdemo.common.spinh"             ' code common to all temp/RH demos
