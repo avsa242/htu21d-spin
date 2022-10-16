@@ -6,7 +6,7 @@
         * Temp/RH data output
     Copyright (c) 2022
     Started Jun 16, 2021
-    Updated Sep 24, 2022
+    Updated Oct 16, 2022
     See end of file for terms of use.
     --------------------------------------------
 
@@ -30,8 +30,8 @@ CON
 
 OBJ
 
-    cfg:    "core.con.boardcfg.flip"
-    sensr:  "sensor.temp_rh.htu21d"
+    cfg:    "boardcfg.flip"
+    sensor:  "sensor.temp_rh.htu21d"
     ser:    "com.serial.terminal.ansi"
     time:   "time"
 
@@ -42,13 +42,13 @@ PUB setup{}
     ser.clear{}
     ser.strln(string("Serial terminal started"))
 
-    if (sensr.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
+    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
         ser.strln(string("HTU21D driver started"))
     else
         ser.strln(string("HTU21D driver failed to start - halting"))
         repeat
 
-    sensr.temp_scale(sensr#C)
+    sensor.temp_scale(sensor#C)
     demo{}
 
 #include "temp_rhdemo.common.spinh"             ' code common to all temp/RH demos

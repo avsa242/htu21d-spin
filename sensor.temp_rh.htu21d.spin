@@ -155,7 +155,7 @@ PUB rh_data{}: rh_adc | crc_in
         readreg(core#RHMEAS_CS, 3, @rh_adc)
         crc_in := rh_adc.byte[0]
         rh_adc >>= 8
-        _lastrhvalid := (crc.meascrc8(@rh_adc, 2) == crc_in)
+        _lastrhvalid := (crc.meas_crc8(@rh_adc, 2) == crc_in)
     else
         readreg(core#RHMEAS_CS, 2, @rh_adc)
 
@@ -199,7 +199,7 @@ PUB temp_data{}: temp_adc | crc_in
         readreg(core#TEMPMEAS_CS, 3, @temp_adc)
         crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
         temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
-        _lasttempvalid := (crc.meascrc8(@temp_adc, 2) == crc_in)
+        _lasttempvalid := (crc.meas_crc8(@temp_adc, 2) == crc_in)
         return ~~temp_adc
     else
         ' no CRC checks; just read the sensor data
