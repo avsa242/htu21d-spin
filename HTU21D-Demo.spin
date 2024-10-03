@@ -1,61 +1,64 @@
 {
-    --------------------------------------------
-    Filename: HTU21D-Demo.spin
-    Author: Jesse Burt
-    Description: HTU21D driver demo
+----------------------------------------------------------------------------------------------------
+    Filename:       HTU21D-Demo.spin
+    Description:    HTU21D driver demo
         * Temp/RH data output
-    Copyright (c) 2022
-    Started Jun 16, 2021
-    Updated Oct 30, 2022
-    See end of file for terms of use.
-    --------------------------------------------
-
-    Build-time symbols supported by driver:
-        -DHTU21D_I2C (default if none specified)
-        -DHTU21D_I2C_BC
+    Author:         Jesse Burt
+    Started:        Jun 16, 2021
+    Updated:        Oct 3, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
+
+' Uncomment the two lines below to use the bytecode-based I2C engine in the driver
+'#define HTU21D_I2C_BC
+'#pragma exportdef(HTU21D_I2C_BC)
+
+
 CON
 
-    _clkmode    = cfg#_clkmode
-    _xinfreq    = cfg#_xinfreq
+    _clkmode    = xtal1+pll16x
+    _xinfreq    = 5_000_000
 
-' -- User-modifiable constants
-    SER_BAUD    = 115_200
-
-    { I2C configuration }
-    SCL_PIN     = 28
-    SDA_PIN     = 29
-    I2C_FREQ    = 400_000                       ' max is 400_000
-' --
 
 OBJ
 
-    cfg:    "boardcfg.flip"
-    sensor:  "sensor.temp_rh.htu21d"
-    ser:    "com.serial.terminal.ansi"
     time:   "time"
+    ser:    "com.serial.terminal.ansi" | SER_BAUD=115_200
+    sensor: "sensor.temp_rh.htu21d" | SCL=28, SDA=29, I2C_FREQ=100_000
 
-PUB setup{}
 
-    ser.start(SER_BAUD)
-    time.msleep(10)
-    ser.clear{}
-    ser.strln(string("Serial terminal started"))
+PUB main() | temp, tscl, rh
 
-    if (sensor.startx(SCL_PIN, SDA_PIN, I2C_FREQ))
-        ser.strln(string("HTU21D driver started"))
+    setup()
+    sensor.temp_scale(sensor.C)
+
+    repeat
+        ser.pos_xy(0, 3)
+        temp := sensor.temperature()
+        tscl := lookupz(sensor.temp_scale(-2): "C", "F", "K")
+        ser.printf3(@"Temp. (deg %c): %3.3d.%02.2d\n\r", tscl, (temp / 100), ||(temp // 100))
+        rh := sensor.rh()
+        ser.printf2(@"Rel. humidity (%%): %3.3d.%02.2d\n\r", (rh / 100), (rh // 100))
+
+
+PUB setup()
+
+    ser.start()
+    time.msleep(30)
+    ser.clear()
+    ser.strln(@"Serial terminal started")
+
+    if ( sensor.start() )
+        ser.strln(@"HTU21D driver started")
     else
-        ser.strln(string("HTU21D driver failed to start - halting"))
+        ser.strln(@"HTU21D driver failed to start - halting")
         repeat
 
-    sensor.temp_scale(sensor#C)
-    demo{}
-
-#include "temp_rhdemo.common.spinh"             ' code common to all temp/RH demos
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
