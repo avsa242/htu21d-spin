@@ -86,7 +86,7 @@ PUB defaults()
     reset()
 
 
-PUB batt_low(): flag
+PUB batt_low(): l
 ' Flag indicating battery/supply voltage low
 '   Returns:
 '       TRUE (-1): VDD < 2.25V (+/- 0.1V)
@@ -94,40 +94,40 @@ PUB batt_low(): flag
     return ( ( readreg(core.RD_USR_REG) >> core.BATT) & 1) == 1
 
 
-PUB crc_check_ena(mode): curr_mode
+PUB crc_check_ena(m): cm
 ' Enable CRC check of sensor data
 '   Valid values:
 '      *TRUE (-1 or 1)
 '       FALSE (0)
 '   Any other value returns the current setting
-    case ||(mode)
+    case ||(m)
         0, 1:
-            _crccheck := mode
+            _crccheck := m
         other:
             return _crccheck
 
 
-PUB heater_ena(state): curr_state
+PUB heater_ena(s): cs
 ' Enable/Disable built-in heater
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Per HTU21D datasheet, this is for functionality diagnosis only
 '   NOTE: Enabling should increase temperature reading by approx 0.5-1.5C
-    curr_state := readreg(core.RD_USR_REG)
-    case ||(state)
+    cs := readreg(core.RD_USR_REG)
+    case ||(s)
         0, 1:
-            state := ( (curr_state & core.HEATER_MASK) | (state << core.HEATER) )
-            writereg(core.WR_USR_REG, state)
+            s := ( (cs & core.HEATER_MASK) | (s << core.HEATER) )
+            writereg(core.WR_USR_REG, s)
         other:
-            return (((curr_state >> core.HEATER) & 1) == 1)
+            return (((cs >> core.HEATER) & 1) == 1)
 
 
-PUB last_rh_valid(): isvalid
+PUB last_rh_valid(): v
 ' Flag indicating CRC check of last RH measurement was good
     return _lastrhvalid
 
 
-PUB last_temp_valid(): isvalid
+PUB last_temp_valid(): v
 ' Flag indicating CRC check of last temperature measurement was good
     return _lasttempvalid
 
@@ -143,7 +143,7 @@ PUB reset()
     time.msleep(core.T_POR)
 
 
-PUB rh_adc_res(r_res): curr_res | adc_bits
+PUB rh_adc_res(r): cr | b
 ' Set RH ADC resolution, in bits
 '   Valid values: 8, 10, 11, 12
 '       Temp ADC res:   RH ADC res:
@@ -153,39 +153,41 @@ PUB rh_adc_res(r_res): curr_res | adc_bits
 '       11              11
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the temperature ADC resolution
-    curr_res := readreg(core.RD_USR_REG)
-    case r_res
+    cr := readreg(core.RD_USR_REG)
+    case r
         8, 10, 11, 12:
             ' map resolution to reg bits
             ' ADC resolution is in bits 7 and 0
-            adc_bits := lookdownz(r_res: 12, 8, 10, 11)
-            adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
-            r_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
-            writereg(core.WR_USR_REG, r_res)
+            b := lookdownz(r: 12, 8, 10, 11)
+            b := ((b & %10) << 6) | (b & 1)
+            r := ((cr & core.ADCRES_MASK) | b)
+            writereg(core.WR_USR_REG, r)
         other:
-            adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
-            return lookupz(adc_bits: 12, 8, 10, 11)
+            b := ((cr >> 6) & %10) | (cr & 1)
+            return lookupz(b: 12, 8, 10, 11)
 
 
-PUB rh_data(): rh_adc | tmp, crc_in
+PUB rh_data(): r | tmp, crc_rd
 ' Read relative humidity data
 '   Returns: u12
     if ( _crccheck )
         tmp := readreg(core.RHMEAS_CS, 3)
-        crc_in := tmp.byte[0]
-        rh_adc := ((tmp.byte[2] << 8) | tmp.byte[1]) & $fffc
-        _lastrhvalid := (crc.meas_crc8(@rh_adc, 2) == crc_in)
+        crc_rd := tmp.byte[0]
+        r := (tmp.byte[2] << 8) | tmp.byte[1]
+        _lastrhvalid := (crc.meas_crc8(@r, 2) == crc_rd)
     else
-        rh_adc := readreg(core.RHMEAS_CS, 2)
+        r := readreg(core.RHMEAS_CS, 2)
+
+    return (r & $fffc)                          ' remove 2 status LSBs
 
 
-PUB rh_word2pct(rh_word): rh
+PUB rh_word2pct(w): r
 ' Convert RH ADC word to percent
 '   Returns: relative humidity, in hundredths of a percent
-    return ( (rh_word * 125_00) / 65536) - 6_00
+    return ( (w * 125_00) / 65536) - 6_00
 
 
-PUB temp_adc_res(t_res): curr_res | adc_bits
+PUB temp_adc_res(r): cr | b
 ' Set temperature ADC resolution, in bits
 '   Valid values: 11..14
 '       Temp ADC res:   RH ADC res:
@@ -195,45 +197,46 @@ PUB temp_adc_res(t_res): curr_res | adc_bits
 '       11              11
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the RH ADC resolution
-    curr_res := readreg(core.RD_USR_REG)
-    case t_res
+    cr := readreg(core.RD_USR_REG)
+    case r
         11..14:
             ' map resolution to reg bits
             ' ADC resolution is in bits 7 and 0
-            adc_bits := lookdownz(t_res: 14, 12, 13, 11)
-            adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
-            t_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
-            curr_res := t_res
-            writereg(core.WR_USR_REG, t_res)
+            b := lookdownz(r: 14, 12, 13, 11)
+            b := ((b & %10) << 6) | (b & 1)
+            r := ((cr & core.ADCRES_MASK) | b)
+            cr := r
+            writereg(core.WR_USR_REG, r)
         other:
-            adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
-            return lookupz(adc_bits: 14, 12, 13, 11)
+            b := ((cr >> 6) & %10) | (cr & 1)
+            return lookupz(b: 14, 12, 13, 11)
 
 
-PUB temp_data(): temp_adc | crc_in
+PUB temp_data(): t | crc_rd
 ' Read temperature data
 '   Returns: s14
     if ( _crccheck )                            ' CRC checks enabled?
-        temp_adc := readreg(core.TEMPMEAS_CS, 3)
-        crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
-        temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
-        _lasttempvalid := (crc.meas_crc8(@temp_adc, 2) == crc_in)
-        return ~~temp_adc
+        t := readreg(core.TEMPMEAS_CS, 3)
+        crc_rd := t.byte[0]                     ' cache the CRC from the sensor
+        _lasttempvalid := (crc.meas_crc8(@t, 2) == crc_rd)
+        t := (t >> 8)                           ' chop it off the measurement
     else
         ' no CRC checks; just read the sensor data
-        temp_adc := readreg(core.TEMPMEAS_CS, 2) & $fffc    ' mask off status bits (unused)
-        return ~~temp_adc
+        t := readreg(core.TEMPMEAS_CS, 2)
+
+    t &= $fffc                                  ' mask off status bits (unused)
+    return ~~t                                  ' extend sign
 
 
-PUB temp_word2deg(temp_word): temp
+PUB temp_word2deg(w): t
 ' Convert temperature ADC word to temperature
 '   Returns: temperature, in hundredths of a degree, in chosen scale
-    temp := ((temp_word * 175_72) / 65536) - 46_85
+    t := ((w * 175_72) / 65536) - 46_85
     case _temp_scale
         C:
             return
         F:
-            return (temp * 9_00 / 5_00) + 32_00
+            return (t * 1_80) + 32_00           ' = t * 9 / 5 + 32  (x100)
         other:
             return FALSE
 
