@@ -4,8 +4,8 @@
     Description:    Driver for the HTU21D Temp/RH sensor
     Author:         Jesse Burt
     Started:        Jun 16, 2021
-    Updated:        Oct 3, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        May 16, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -91,9 +91,7 @@ PUB batt_low(): flag
 '   Returns:
 '       TRUE (-1): VDD < 2.25V (+/- 0.1V)
 '       FALSE (0): VDD > 2.25V (+/- 0.1V)
-    flag := 0
-    readreg(core.RD_USR_REG, 1, @flag)
-    return ((flag >> core.BATT) & 1) == 1
+    return ( ( readreg(core.RD_USR_REG) >> core.BATT) & 1) == 1
 
 
 PUB crc_check_ena(mode): curr_mode
@@ -115,13 +113,11 @@ PUB heater_ena(state): curr_state
 '   Any other value polls the chip and returns the current setting
 '   NOTE: Per HTU21D datasheet, this is for functionality diagnosis only
 '   NOTE: Enabling should increase temperature reading by approx 0.5-1.5C
-    curr_state := 0
-    readreg(core.RD_USR_REG, 1, @curr_state)
+    curr_state := readreg(core.RD_USR_REG)
     case ||(state)
         0, 1:
-            state <<= core.HEATER
-            state := ((curr_state & core.HEATER_MASK) | state)
-            writereg(core.WR_USR_REG, 1, @state)
+            state := ( (curr_state & core.HEATER_MASK) | (state << core.HEATER) )
+            writereg(core.WR_USR_REG, state)
         other:
             return (((curr_state >> core.HEATER) & 1) == 1)
 
@@ -157,8 +153,7 @@ PUB rh_adc_res(r_res): curr_res | adc_bits
 '       11              11
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the temperature ADC resolution
-    curr_res := 0
-    readreg(core.RD_USR_REG, 1, @curr_res)
+    curr_res := readreg(core.RD_USR_REG)
     case r_res
         8, 10, 11, 12:
             ' map resolution to reg bits
@@ -166,30 +161,28 @@ PUB rh_adc_res(r_res): curr_res | adc_bits
             adc_bits := lookdownz(r_res: 12, 8, 10, 11)
             adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
             r_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
-            writereg(core.WR_USR_REG, 1, @r_res)
+            writereg(core.WR_USR_REG, r_res)
         other:
             adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
             return lookupz(adc_bits: 12, 8, 10, 11)
 
 
-PUB rh_data(): rh_adc | crc_in
+PUB rh_data(): rh_adc | tmp, crc_in
 ' Read relative humidity data
 '   Returns: u12
-    rh_adc := 0
-
     if ( _crccheck )
-        readreg(core.RHMEAS_CS, 3, @rh_adc)
-        crc_in := rh_adc.byte[0]
-        rh_adc >>= 8
+        tmp := readreg(core.RHMEAS_CS, 3)
+        crc_in := tmp.byte[0]
+        rh_adc := ((tmp.byte[2] << 8) | tmp.byte[1]) & $fffc
         _lastrhvalid := (crc.meas_crc8(@rh_adc, 2) == crc_in)
     else
-        readreg(core.RHMEAS_CS, 2, @rh_adc)
+        rh_adc := readreg(core.RHMEAS_CS, 2)
 
 
 PUB rh_word2pct(rh_word): rh
 ' Convert RH ADC word to percent
 '   Returns: relative humidity, in hundredths of a percent
-    return ((rh_word * 125_00) / 65536) - 6_00
+    return ( (rh_word * 125_00) / 65536) - 6_00
 
 
 PUB temp_adc_res(t_res): curr_res | adc_bits
@@ -202,8 +195,7 @@ PUB temp_adc_res(t_res): curr_res | adc_bits
 '       11              11
 '   Any other value polls the chip and returns the current setting
 '   NOTE: This setting also directly affects the RH ADC resolution
-    curr_res := 0
-    readreg(core.RD_USR_REG, 1, @curr_res)
+    curr_res := readreg(core.RD_USR_REG)
     case t_res
         11..14:
             ' map resolution to reg bits
@@ -212,7 +204,7 @@ PUB temp_adc_res(t_res): curr_res | adc_bits
             adc_bits := ((adc_bits & %10) << 6) | (adc_bits & 1)
             t_res := ((curr_res & core.ADCRES_MASK) | adc_bits)
             curr_res := t_res
-            writereg(core.WR_USR_REG, 1, @t_res)
+            writereg(core.WR_USR_REG, t_res)
         other:
             adc_bits := ((curr_res >> 6) & %10) | (curr_res & 1)
             return lookupz(adc_bits: 14, 12, 13, 11)
@@ -221,18 +213,15 @@ PUB temp_adc_res(t_res): curr_res | adc_bits
 PUB temp_data(): temp_adc | crc_in
 ' Read temperature data
 '   Returns: s14
-    temp_adc := 0
-
     if ( _crccheck )                            ' CRC checks enabled?
-        readreg(core.TEMPMEAS_CS, 3, @temp_adc)
+        temp_adc := readreg(core.TEMPMEAS_CS, 3)
         crc_in := temp_adc.byte[0]              ' cache the CRC from the sensor
         temp_adc := (temp_adc >> 8) & $fffc     ' chop it off the measurement
         _lasttempvalid := (crc.meas_crc8(@temp_adc, 2) == crc_in)
         return ~~temp_adc
     else
         ' no CRC checks; just read the sensor data
-        readreg(core.TEMPMEAS_CS, 2, @temp_adc)
-        temp_adc &= $fffc                       ' mask off status bits (unused)
+        temp_adc := readreg(core.TEMPMEAS_CS, 2) & $fffc    ' mask off status bits (unused)
         return ~~temp_adc
 
 
@@ -249,8 +238,9 @@ PUB temp_word2deg(temp_word): temp
             return FALSE
 
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Read nr_bytes from the device into ptr_buff
+PRI readreg(reg_nr, len=1): v | cmd_pkt
+' Read value(s) from register
+    v := 0
     case reg_nr                                 ' validate register num
         $E3, $E5, $F3, $F5, $E7:
             cmd_pkt.byte[0] := SLAVE_WR
@@ -259,33 +249,26 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             i2c.wrblock_lsbf(@cmd_pkt, 2)
             i2c.start()
             i2c.wr_byte(SLAVE_RD)
-
-            { read MSByte to LSByte }
-            i2c.rdblock_msbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.rdblock_msbf(@v, len, i2c.NAK)
             i2c.stop()
         other:                                  ' invalid reg_nr
             return
 
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Write nr_bytes to the device from ptr_buff
-    case reg_nr
-        $E6, $FE:
-            cmd_pkt.byte[0] := SLAVE_WR
-            cmd_pkt.byte[1] := reg_nr
-            i2c.start()
-            i2c.wrblock_lsbf(@cmd_pkt, 2)
-
-            { write MSByte to LSByte }
-            i2c.wrblock_msbf(ptr_buff, nr_bytes)
-            i2c.stop()
-        other:
-            return
+PRI writereg(reg_nr, val, len=1) | cmd_pkt
+' Write value(s) to register
+    cmd_pkt.byte[0] := SLAVE_WR
+    cmd_pkt.byte[1] := reg_nr
+    i2c.start()
+    i2c.wrblock_lsbf(@cmd_pkt, 2)
+    if ( reg_nr == core.WR_USR_REG )
+        i2c.wrblock_msbf(@val, len)
+    i2c.stop()
 
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
