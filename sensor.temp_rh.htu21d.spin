@@ -4,8 +4,8 @@
     Description:    Driver for the HTU21D Temp/RH sensor
     Author:         Jesse Burt
     Started:        Jun 16, 2021
-    Updated:        May 16, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Jun 2, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -100,7 +100,7 @@ PUB crc_check_ena(m): cm
 '      *TRUE (-1 or 1)
 '       FALSE (0)
 '   Any other value returns the current setting
-    case ||(m)
+    case abs(m)
         0, 1:
             _crccheck := m
         other:
@@ -114,7 +114,7 @@ PUB heater_ena(s): cs
 '   NOTE: Per HTU21D datasheet, this is for functionality diagnosis only
 '   NOTE: Enabling should increase temperature reading by approx 0.5-1.5C
     cs := readreg(core.RD_USR_REG)
-    case ||(s)
+    case abs(s)
         0, 1:
             s := ( (cs & core.HEATER_MASK) | (s << core.HEATER) )
             writereg(core.WR_USR_REG, s)
@@ -271,7 +271,7 @@ PRI writereg(reg_nr, val, len=1) | cmd_pkt
 
 DAT
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
